@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -237,54 +238,94 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager
             }
         }
 
-        private void btnGetStorageInfo_Click(object sender, RoutedEventArgs e)
+        // Runs an admin call and logs what came back (these calls have no dedicated result view, and the old sync calls
+        // fired results into events nothing listened to, so the user saw nothing).
+        private async System.Threading.Tasks.Task RunAdminCallAsync(string what, Func<System.Threading.Tasks.Task<NextGenSoftware.WebSocket.CallBackBaseEventArgs>> call)
         {
-            LogMessage("ADMIN: Coming Soon...");
-            ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+            LogMessage($"ADMIN: {what}...");
+            ShowStatusMessage($"{what}...", StatusMessageType.Information, true);
 
-            //LogMessage("ADMIN: Getting Storage Info...");
-            //ShowStatusMessage($"Getting Storage Info...", StatusMessageType.Information, true);
-            //HoloNETManager.Instance.HoloNETClientAdmin.GetStorageInfo();
+            try
+            {
+                NextGenSoftware.WebSocket.CallBackBaseEventArgs result = await call();
+
+                if (result == null || result.IsError)
+                {
+                    LogMessage($"ADMIN: {what} failed: {result?.Message}");
+                    ShowStatusMessage($"{what} failed: {result?.Message}", StatusMessageType.Error);
+                    return;
+                }
+
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(result, Newtonsoft.Json.Formatting.Indented, new Newtonsoft.Json.JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore,
+                    Error = (s, args) => args.ErrorContext.Handled = true
+                });
+
+                if (json.Length > 20000)
+                    json = json.Substring(0, 20000) + "\n... (truncated)";
+
+                LogMessage($"ADMIN: {what} done:\n{json}");
+                ShowStatusMessage($"{what} done.", StatusMessageType.Success);
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"ADMIN: {what} failed: {ex.Message}");
+                ShowStatusMessage($"{what} failed: {ex.Message}", StatusMessageType.Error);
+            }
         }
 
-        private void btnDumpNetWorkStats_Click(object sender, RoutedEventArgs e)
+        private bool CheckAppSelected()
+        {
+            if (HoloNETManager.Instance != null && HoloNETManager.Instance.CurrentApp != null)
+                return true;
+
+            LogMessage("ADMIN: Select A hApp From The Installed hApps List First!");
+            ShowStatusMessage($"Select A hApp From The Installed hApps List First!", StatusMessageType.Information);
+            return false;
+        }
+
+        private static string PickFile(string title, string filter)
+        {
+            OpenFileDialog dialog = new OpenFileDialog { Title = title, Filter = filter };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
+        private async void btnGetStorageInfo_Click(object sender, RoutedEventArgs e)
         {
             //LogMessage("ADMIN: Coming Soon...");
             //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
-
-            LogMessage("ADMIN: Dumping Network Stats...");
-            ShowStatusMessage($"Dumping Network Stats....", StatusMessageType.Information, true);
-            HoloNETManager.Instance.HoloNETClientAdmin.DumpNetworkStats();
+            await RunAdminCallAsync("Getting Storage Info", async () => await HoloNETManager.Instance.HoloNETClientAdmin.GetStorageInfoAsync());
         }
 
-        private void btnDumpNetworkMetrics_Click(object sender, RoutedEventArgs e)
+        private async void btnDumpNetWorkStats_Click(object sender, RoutedEventArgs e)
         {
-            //LogMessage("ADMIN: Coming Soon...");
-            //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
-
-            LogMessage("ADMIN: Dumping Network Metrics...");
-            ShowStatusMessage($"Dumping Network Metrics....", StatusMessageType.Information, true);
-            HoloNETManager.Instance.HoloNETClientAdmin.DumpNetworkMetrics();
+            // Was the sync DumpNetworkStats(): its result went to an event nothing handled, so nothing was shown.
+            //HoloNETManager.Instance.HoloNETClientAdmin.DumpNetworkStats();
+            await RunAdminCallAsync("Dumping Network Stats", async () => await HoloNETManager.Instance.HoloNETClientAdmin.DumpNetworkStatsAsync());
         }
 
-        private void btnDumpState_Click(object sender, RoutedEventArgs e)
+        private async void btnDumpNetworkMetrics_Click(object sender, RoutedEventArgs e)
         {
-            //LogMessage("ADMIN: Coming Soon...");
-            //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
-
-            LogMessage("ADMIN: Dump State...");
-            ShowStatusMessage($"Dump State....", StatusMessageType.Information, true);
-            HoloNETManager.Instance.HoloNETClientAdmin.DumpState();
+            // Was the sync DumpNetworkMetrics() (result never shown, see above).
+            //HoloNETManager.Instance.HoloNETClientAdmin.DumpNetworkMetrics();
+            await RunAdminCallAsync("Dumping Network Metrics", async () => await HoloNETManager.Instance.HoloNETClientAdmin.DumpNetworkMetricsAsync());
         }
 
-        private void btnFullDump_Click(object sender, RoutedEventArgs e)
+        private async void btnDumpState_Click(object sender, RoutedEventArgs e)
         {
-            //LogMessage("ADMIN: Coming Soon...");
-            //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+            // Was the sync DumpState() with no cell (result never shown, see above); now dumps the selected hApp's cell.
+            //HoloNETManager.Instance.HoloNETClientAdmin.DumpState();
+            if (CheckAppSelected())
+                await RunAdminCallAsync("Dumping State", async () => await HoloNETManager.Instance.HoloNETClientAdmin.DumpStateAsync(HoloNETManager.Instance.CurrentApp.CellId));
+        }
 
-            LogMessage("ADMIN: Dump Full State...");
-            ShowStatusMessage($"Dump Full State....", StatusMessageType.Information, true);
-            HoloNETManager.Instance.HoloNETClientAdmin.DumpFullState();
+        private async void btnFullDump_Click(object sender, RoutedEventArgs e)
+        {
+            // Was the sync DumpFullState() with no cell (result never shown, see above); now dumps the selected hApp's cell.
+            //HoloNETManager.Instance.HoloNETClientAdmin.DumpFullState();
+            if (CheckAppSelected())
+                await RunAdminCallAsync("Dumping Full State", async () => await HoloNETManager.Instance.HoloNETClientAdmin.DumpFullStateAsync(HoloNETManager.Instance.CurrentApp.CellId));
         }
 
         //private void btnGetCellId_Click(object sender, RoutedEventArgs e)
@@ -312,22 +353,34 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager
             }
         }
 
-        private void btnAddAgentInfo_Click(object sender, RoutedEventArgs e)
+        private async void btnAddAgentInfo_Click(object sender, RoutedEventArgs e)
         {
-            LogMessage("ADMIN: Coming Soon...");
-            ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+            //LogMessage("ADMIN: Coming Soon...");
+            //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+
+            // Agent infos as Holochain encodes them (e.g. copied from another conductor's Get Agent Info), one per line.
+            string path = PickFile("Agent infos to add (one encoded agent info per line)", "Text files (*.txt;*.json)|*.txt;*.json|All files (*.*)|*.*");
+            if (path != null)
+            {
+                string[] infos = File.ReadAllLines(path).Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Trim()).ToArray();
+                await RunAdminCallAsync($"Adding {infos.Length} Agent Info(s)", async () => await HoloNETManager.Instance.HoloNETClientAdmin.AddAgentInfoAsync((System.Collections.Generic.IEnumerable<string>)infos));
+            }
 
             //LogMessage("ADMIN: Adding Agent Info...");
             //ShowStatusMessage($"Adding Agent Info....", StatusMessageType.Information, true);
             //HoloNETManager.Instance.HoloNETClientAdmin.AddAgentInfo();
         }
 
-        private void btnDeleteCloneCell_Click(object sender, RoutedEventArgs e)
+        private async void btnDeleteCloneCell_Click(object sender, RoutedEventArgs e)
         {
             if (HoloNETManager.Instance != null && HoloNETManager.Instance.CurrentApp != null)
             {
-                LogMessage("ADMIN: Coming Soon...");
-                ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+                //LogMessage("ADMIN: Coming Soon...");
+                //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+
+                // Holochain only deletes a clone cell that has been disabled first; the conductor's error says so if not.
+                if (MessageBox.Show($"Delete the clone cell {HoloNETManager.Instance.CurrentApp.DnaHash} of '{HoloNETManager.Instance.CurrentApp.Name}'? This can't be undone.", "Delete Clone Cell", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                    await RunAdminCallAsync("Deleting Clone Cell", async () => await HoloNETManager.Instance.HoloNETClientAdmin.DeleteCloneCellAsync(HoloNETManager.Instance.CurrentApp.Name, HoloNETManager.Instance.CurrentApp.CellId));
 
                 //LogMessage("ADMIN: Deleting Clone Cell...");
                 //ShowStatusMessage($"Deleting Clone Cell....", StatusMessageType.Information, true);
@@ -340,12 +393,20 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager
             }
         }
 
-        private void btnGraftRecords_Click(object sender, RoutedEventArgs e)
+        private async void btnGraftRecords_Click(object sender, RoutedEventArgs e)
         {
             if (HoloNETManager.Instance != null && HoloNETManager.Instance.CurrentApp != null)
             {
-                LogMessage("ADMIN: Coming Soon...");
-                ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+                //LogMessage("ADMIN: Coming Soon...");
+                //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+
+                // A JSON array of records (e.g. saved from Dump State) to graft onto the selected cell's source chain, validated.
+                string path = PickFile("Records to graft (JSON array)", "JSON files (*.json)|*.json|All files (*.*)|*.*");
+                if (path != null)
+                {
+                    object[] records = Newtonsoft.Json.JsonConvert.DeserializeObject<object[]>(File.ReadAllText(path)) ?? new object[0];
+                    await RunAdminCallAsync($"Grafting {records.Length} Record(s)", async () => await HoloNETManager.Instance.HoloNETClientAdmin.GraftRecordsAsync(HoloNETManager.Instance.CurrentApp.CellId, true, records));
+                }
 
                 //LogMessage("ADMIN: Grafting Records...");
                 //ShowStatusMessage($"Grafting Records....", StatusMessageType.Information, true);
@@ -358,12 +419,17 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager
             }
         }
 
-        private void btnUpdateCoordinators_Click(object sender, RoutedEventArgs e)
+        private async void btnUpdateCoordinators_Click(object sender, RoutedEventArgs e)
         {
             if (HoloNETManager.Instance != null && HoloNETManager.Instance.CurrentApp != null)
             {
-                LogMessage("ADMIN: Coming Soon...");
-                ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+                //LogMessage("ADMIN: Coming Soon...");
+                //ShowStatusMessage($"Coming Soon....", StatusMessageType.Information);
+
+                // Hot-swap the selected DNA's coordinator zomes from a coordinator bundle (integrity zomes stay as they are).
+                string path = PickFile("Coordinator bundle", "Coordinator bundles (*.dna;*.bundle)|*.dna;*.bundle|All files (*.*)|*.*");
+                if (path != null)
+                    await RunAdminCallAsync("Updating Coordinator Zomes", async () => await HoloNETManager.Instance.HoloNETClientAdmin.UpdateCoordinatorsAsync(HoloNETManager.Instance.CurrentApp.DnaHash, path));
 
                 //LogMessage("ADMIN: Updating Coordinator Zomes...");
                 //ShowStatusMessage($"Updating Coordinator Zomes....", StatusMessageType.Information, true);
