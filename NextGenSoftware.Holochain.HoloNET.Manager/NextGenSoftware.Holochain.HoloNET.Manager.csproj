@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -11,14 +11,26 @@
 	<Company>NextGen Software Ltd</Company>
 	<Product>HoloNET Holochain Manager</Product>
 	<Title>HoloNET Holochain Manager</Title>
-	<Summary>WPF UI manager for HoloNET Client and HoloNET ORM -- a live demo, dev tool, and reusable component library for building .NET hApps on Holochain 0.7.0.</Summary>
-	<Description>HoloNET Manager is a WPF desktop application and reusable component library that showcases every feature of HoloNET Client and HoloNET ORM. Acts as a Launcher, Dev Store, and hApp management console: install/enable/disable/uninstall hApps, manage agents, inspect cells, monitor network stats, browse DHT state, and exercise every ORM CRUD operation -- all with a polished UI. The backend components (ViewModels, services, data-binding helpers) are designed to be reused in your own .NET hApps. Planned ports to Uno, MAUI, and OpenSilver for Windows/Mac/Linux/mobile/web. Targets Holochain 0.7.0. Part of the OASIS Omniverse ecosystem at https://holonet.oasisomniverse.one -- Source: https://github.com/holochain-open-dev/holochain-client-csharp</Description>
+	<Summary>WPF UI manager for HoloNET Client and HoloNET ORM -- a live demo, dev tool, and reusable component library for building .NET hApps on Holochain 0.7.1 / 0.7.0.</Summary>
+	<Description>HoloNET Manager is a WPF desktop application and reusable component library that showcases every feature of HoloNET Client and HoloNET ORM. Acts as a Launcher, Dev Store, and hApp management console: install/enable/disable/uninstall hApps, manage agents, inspect cells, monitor network stats, browse DHT state, and exercise every ORM CRUD operation -- all with a polished UI. The backend components (ViewModels, services, data-binding helpers) are designed to be reused in your own .NET hApps. Planned ports to Uno, MAUI, and OpenSilver for Windows/Mac/Linux/mobile/web. Targets Holochain 0.7.1 / 0.7.0. Part of the OASIS Omniverse ecosystem at https://holonet.oasisomniverse.one -- Source: https://github.com/holochain-open-dev/holochain-client-csharp</Description>
 	<!---->
 	<PackageProjectUrl>https://holonet.oasisomniverse.one</PackageProjectUrl>
 	<PackageIcon>hc logo.png</PackageIcon>
 	<Authors>David Ellams (NextGen Software Ltd)</Authors>
 	<PackageTags>holochain;net;unity;manager;ui</PackageTags>
-	<PackageReleaseNotes>## v4.1.0 — Holochain 0.7.0 Wire Protocol Upgrade
+	<PackageReleaseNotes>## v4.2.0 - HoloNET Manager works end to end on Holochain 0.7.0 and 0.7.1
+
+- App connections now send the authentication token Holochain 0.6+ requires (none worked before).
+- Demo HoloNET Entry/Collection use the 0.7 OASIS hApp functions and send the required id/username; bundled oasis.happ rebuilt for 0.7; demo hApp path is absolute.
+- Fixed deadlocks/freezes (work queued from WebSocket events never ran; connecting an app deadlocked; WebSocket messages handled on the UI thread), duplicate connections on 0.7.0, reboot hangs, shared entry hash, shutdown re-subscribing handlers, stale-client recycling.
+- Fully tested against real Holochain 0.7.0 and 0.7.1 conductors (1,758 + 9 live/fake-conductor tests on each), line coverage ~93%.
+- Requires NextGenSoftware.Logging / NextGenSoftware.WebSocket 2.0.4 (fixes below).
+
+Full changelog: https://github.com/holochain-open-dev/holochain-client-csharp/blob/main/CHANGELOG.md
+
+---
+
+## v4.1.0 — Holochain 0.7.0 Wire Protocol Upgrade
 
 Tracks HoloNET Client v4.1.0: full Holochain 0.7.0 wire-protocol support.
 - Kitsune2/iroh (QUIC) as sole network backend (tx5/WebRTC removed).
@@ -62,7 +74,7 @@ The biggest HoloNET release since its original launch — a complete upgrade to 
 	<!--<PackageLicenseExpression>GNU GPLv3</PackageLicenseExpression>-->
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-	<Version>4.1.0</Version>
+	<Version>4.2.0</Version>
 	<!--<PackageLicenseFile>..\LICENSE</PackageLicenseFile>-->
 
 	<AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
