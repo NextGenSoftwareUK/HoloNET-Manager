@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -18,7 +18,9 @@
 	<PackageIcon>hc logo.png</PackageIcon>
 	<Authors>David Ellams (NextGen Software Ltd)</Authors>
 	<PackageTags>holochain;net;unity;manager;ui</PackageTags>
-	<PackageReleaseNotes>## v4.2.0 - HoloNET Manager works end to end on Holochain 0.7.0 and 0.7.1
+	<PackageReleaseNotes>## v4.4.0 - Get Storage Info, Add Agent Info, Delete Clone Cell, Graft Records and Update Coordinators now work (were "Coming Soon"); the Dump buttons now show their results.
+
+## v4.2.0 - HoloNET Manager works end to end on Holochain 0.7.0 and 0.7.1
 
 - App connections now send the authentication token Holochain 0.6+ requires (none worked before).
 - Demo HoloNET Entry/Collection use the 0.7 OASIS hApp functions and send the required id/username; bundled oasis.happ rebuilt for 0.7; demo hApp path is absolute.
@@ -74,7 +76,7 @@ The biggest HoloNET release since its original launch — a complete upgrade to 
 	<!--<PackageLicenseExpression>GNU GPLv3</PackageLicenseExpression>-->
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-	<Version>4.2.0</Version>
+	<Version>4.4.0</Version>
 	<!--<PackageLicenseFile>..\LICENSE</PackageLicenseFile>-->
 
 	<AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
