@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using NextGenSoftware.Logging;
@@ -330,6 +330,14 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
         private void _holoNETClientAdmin_OnZomeCallCapabilityGrantedCallBack(object sender, ZomeCallCapabilityGrantedCallBackEventArgs e)
         {
+            // Errors raise this event too (e.g. Holochain 0.7.0 rejecting the first grant shape HoloNET tries, before it retries
+            // with the 0.7.0 one), and carrying on anyway attached and connected twice for the same app.
+            if (e.IsError)
+            {
+                LogMessage($"ADMIN: Error: {e.Message}");
+                return;
+            }
+
             if (!InitHoloNETEntryDemo)
             {
                 _installingAppCellId = null;
@@ -346,6 +354,14 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
         private void _holoNETClientAdmin_OnAppInterfaceAttachedCallBack(object sender, AppInterfaceAttachedCallBackEventArgs e)
         {
+            // Errors raise this event too (e.g. Holochain 0.7.0 rejecting the first grant shape HoloNET tries, before it retries
+            // with the 0.7.0 one), and carrying on anyway attached and connected twice for the same app.
+            if (e.IsError)
+            {
+                LogMessage($"ADMIN: Error: {e.Message}");
+                return;
+            }
+
             if (!InitHoloNETEntryDemo)
             {
                 LogMessage($"ADMIN: App Interface Attached On Port {e.Port}.");
@@ -366,7 +382,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
                             if (client.EndPoint.Port == e.Port)
                             {
                                 LogMessage($"APP: Existing HoloNETClient AppAgent WebSocket Connected On Port {client.EndPoint.Port} So Matched Admin Attached Port.");
-                                Dispatcher.CurrentDispatcher.InvokeAsync(async () => await ProcessClientOperationAsync(client));
+                                // Was Dispatcher.CurrentDispatcher.InvokeAsync: called from WebSocket event threads, that queued the work on a new
+                                // dispatcher for that thread which never runs, so it never happened. RunOnUIThread uses the app's dispatcher.
+                                //Dispatcher.CurrentDispatcher.InvokeAsync(async () => await ProcessClientOperationAsync(client));
+                                RunOnUIThread(async () => await ProcessClientOperationAsync(client));
                             }
                             else
                             {
@@ -396,24 +415,27 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
                 {
                     LogMessage($"APP: No Existing HoloNETClient AppAgent WebSocket Found Running For AgentPubKey {CurrentApp.AgentPubKey}, DnaHash {CurrentApp.DnaHash} And InstalledAppId {CurrentApp.Name} So Looking For Client To Recycle...");
 
-                    foreach (HoloNETClientAppAgent client in HoloNETClientAppAgentClients)
-                    {
-                        if (client.State != System.Net.WebSockets.WebSocketState.Open)
-                        {
-                            LogMessage($"APP: Found Stale HoloNETClient AppAgent WebSocket So Recycling...");
+                    // Recycling is off: a stale client belongs to another app (its DNA, agent, token and port are that app's), so connecting it
+                    // "for" the current app reconnected the wrong app on its old port. A new client is created below instead.
+//                    // Was foreach (HoloNETClientAppAgent client ...): the pool holds IHoloNETClientAppAgent, so any other implementation threw InvalidCastException.
+//                    foreach (IHoloNETClientAppAgent client in HoloNETClientAppAgentClients)
+//                    {
+//                        if (client.State != System.Net.WebSockets.WebSocketState.Open)
+//                        {
+//                            LogMessage($"APP: Found Stale HoloNETClient AppAgent WebSocket So Recycling...");
 
-                            //if we find an old or stale client we can recycle it...
-                            ShowStatusMessage($"Connecting To HoloNETClient AppAgent WebSocket On Port {e.Port}...", StatusMessageType.Information, true);
-                            LogMessage($"APP: Connecting To HoloNETClient AppAgent WebSocket On Port {e.Port}...");
-                            client.Connect();
+//                            //if we find an old or stale client we can recycle it...
+//                            ShowStatusMessage($"Connecting To HoloNETClient AppAgent WebSocket On Port {e.Port}...", StatusMessageType.Information, true);
+//                            LogMessage($"APP: Connecting To HoloNETClient AppAgent WebSocket On Port {e.Port}...");
+//                            client.Connect();
 
-                            foundClient = true;
-                            break;
-                        }
-                    }
+//                            foundClient = true;
+//                            break;
+//                        }
+//                    }
 
-                    if (!foundClient)
-                        LogMessage($"APP: No Stale HoloNETClient AppAgent WebSocket Found To Recycle.");
+//                    if (!foundClient)
+//                        LogMessage($"APP: No Stale HoloNETClient AppAgent WebSocket Found To Recycle.");
                 }
 
                 //If it still doesn't find one then create a new appAgent connection now...
@@ -421,15 +443,23 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
                 {
                     LogMessage($"APP: No Existing HoloNETClient AppAgent WebSocket Found Running For AgentPubKey {CurrentApp.AgentPubKey}, DnaHash {CurrentApp.DnaHash} And InstalledAppId {CurrentApp.Name} So Creating New HoloNETClient AppAgent WebSocket Now...");
 
-                    IHoloNETClientAppAgent newClient = CreateNewAppAgentClientConnection(CurrentApp.Name, CurrentApp.AgentPubKey, e.Port.Value);
-                    LogMessage($"APP: New HoloNETClient AppAgent WebSocket Created.");
+                    // Off the WebSocket thread: creating the client issues an app authentication token, and waiting for that reply
+                    // here (on the thread that has to read it) deadlocked.
+                    string appName = CurrentApp.Name, agentPubKey = CurrentApp.AgentPubKey;
+                    ushort port = e.Port.Value;
 
-                    ShowStatusMessage($"Connecting To HoloNETClient AppAgent WebSocket On Port {e.Port}...", StatusMessageType.Information, true);
-                    LogMessage($"APP: Connecting To HoloNETClient AppAgent WebSocket On Port {e.Port}...");
-                    newClient.Connect();
+                    RunOnUIThread(async () =>
+                    {
+                        IHoloNETClientAppAgent newClient = await CreateNewAppAgentClientConnectionAsync(appName, agentPubKey, port);
+                        LogMessage($"APP: New HoloNETClient AppAgent WebSocket Created.");
 
-                    //Add the new connection the AppAgent Connection Pool.
-                    HoloNETClientAppAgentClients.Add(newClient);
+                        ShowStatusMessage($"Connecting To HoloNETClient AppAgent WebSocket On Port {port}...", StatusMessageType.Information, true);
+                        LogMessage($"APP: Connecting To HoloNETClient AppAgent WebSocket On Port {port}...");
+
+                        //Add the new connection the AppAgent Connection Pool (before connecting, so OnConnected finds it).
+                        HoloNETClientAppAgentClients.Add(newClient);
+                        await newClient.ConnectAsync();
+                    });
                 }
             }
         }
@@ -472,7 +502,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
                 InitHoloNETClientAdmin();
 
-                Dispatcher.CurrentDispatcher.InvokeAsync(async () => 
+                // Was Dispatcher.CurrentDispatcher.InvokeAsync: called from WebSocket event threads, that queued the work on a new
+                // dispatcher for that thread which never runs, so it never happened. RunOnUIThread uses the app's dispatcher.
+                //Dispatcher.CurrentDispatcher.InvokeAsync(async () => 
+                RunOnUIThread(async () => 
                 {
                     bool autoStart = HoloNETClientAdmin.HoloNETDNA.AutoStartHolochainConductor;
                     HoloNETClientAdmin.HoloNETDNA.AutoStartHolochainConductor = false; //Need to set this to false temp so it doesnt attempt to start another conductor when the existing one is still running.

@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using NextGenSoftware.Holochain.HoloNET.Client;
 using NextGenSoftware.Holochain.HoloNET.Manager.Enums;
 using NextGenSoftware.Holochain.HoloNET.Manager.Interfaces;
@@ -25,7 +25,8 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             {
                 LogMessage($"APP: Creating HoloNET Entry (Internal Connection) (Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort})...");
                 ShowStatusMessage($"Creating HoloNET Entry (Internal Connection) (Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort})...", StatusMessageType.Information, true);
-                HoloNETEntryUIManager.CurrentHoloNETEntryUI.ShowStatusMessage($"Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort}...", StatusMessageType.Information, true);
+                // ?. : the popup may be closed (and is absent when the manager runs headless); this threw a NullReferenceException.
+                HoloNETEntryUIManager.CurrentHoloNETEntryUI?.ShowStatusMessage($"Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort}...", StatusMessageType.Information, true);
 
                 // If you wanted to load a persisted DNA from disk and then make ammendments to it you would do this:
                 //HoloNETDNA dna = HoloNETDNAManager.LoadDNA();
@@ -44,6 +45,9 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
                     DnaHash = initDemoResult.DnaHash,
                     AutoStartHolochainConductor = false, // This defaults to true normally so make sure you set this to false because we can connect to the already running holochain.exe (the one admin is already using).
                     AutoShutdownHolochainConductor = false, // This defaults to true normally so make sure you set this to false.
+                    // Holochain 0.6+ app interfaces need an authentication token before any request; without one the conductor closed
+                    // the connection on the first call, so the demo never worked on 0.7.
+                    AppAuthenticationToken = await IssueAppAuthenticationTokenAsync(HoloNETEntryDemoAppId),
 
                     //HolochainConductorToUse = HolochainConductorEnum.HcDevTool,
                     //ShowHolochainConductorWindow = true,

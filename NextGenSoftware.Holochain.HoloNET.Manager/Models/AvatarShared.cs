@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NextGenSoftware.Holochain.HoloNET.Client;
 using NextGenSoftware.Holochain.HoloNET.Client.Interfaces;
 using NextGenSoftware.Holochain.HoloNET.ORM.Entries;
@@ -14,10 +14,24 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Models
         private string _firstName = "";
 
         //This constructor will create an empty object with no internal HoloNETClient connection.
-        public AvatarShared() : base("oasis", "get_avatar", "create_avatar", "update_avatar", "delete_avatar", false) { }
+        // Were get_avatar / create_avatar / update_avatar / delete_avatar (see Avatar).
+        //public AvatarShared() : base("oasis", "get_avatar", "create_avatar", "update_avatar", "delete_avatar", false) { }
+        public AvatarShared() : base("oasis", "get_entry_avatar", "create_entry_avatar", "update_entry_avatar", "delete_entry_avatar", false) { }
 
         //This constructor takes a shared HoloNETClient connection as a param.
-        public AvatarShared(IHoloNETClientAppAgent holoNETclient) : base("oasis", "get_avatar", "create_avatar", "update_avatar", "delete_avatar", holoNETclient) { }
+        //public AvatarShared(IHoloNETClientAppAgent holoNETclient) : base("oasis", "get_avatar", "create_avatar", "update_avatar", "delete_avatar", holoNETclient) { }
+        public AvatarShared(IHoloNETClientAppAgent holoNETclient) : base("oasis", "get_entry_avatar", "create_entry_avatar", "update_entry_avatar", "delete_entry_avatar", holoNETclient) { }
+
+        private string _username;
+
+        // The OASIS hApp's avatar entry requires a username (and an id, which HoloNETAuditEntryBase provides); without one every
+        // save failed validation. Defaults to the email, or the id when there's no email.
+        [HolochainRustFieldName("username")]
+        public string Username
+        {
+            get { return !string.IsNullOrEmpty(_username) ? _username : !string.IsNullOrEmpty(Email) ? Email : Id.ToString(); }
+            set { _username = value; }
+        }
 
         //[HolochainFieldName("first_name")]
         //public string FirstName { get; set; }

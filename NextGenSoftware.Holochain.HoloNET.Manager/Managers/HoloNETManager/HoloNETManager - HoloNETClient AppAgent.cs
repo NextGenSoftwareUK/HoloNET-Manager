@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -15,7 +15,19 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 {
     public partial class HoloNETManager : IHoloNETManager
     {
+        /// <summary>CreateNewAppAgentClientConnection without blocking: use this from HoloNET event handlers.</summary>
+        public async Task<IHoloNETClientAppAgent> CreateNewAppAgentClientConnectionAsync(string installedAppId, string agentPubKey, ushort port)
+        {
+            byte[] token = await IssueAppAuthenticationTokenAsync(installedAppId);
+            return CreateNewAppAgentClientConnection(installedAppId, agentPubKey, port, token);
+        }
+
         public IHoloNETClientAppAgent CreateNewAppAgentClientConnection(string installedAppId, string agentPubKey, ushort port)
+        {
+            return CreateNewAppAgentClientConnection(installedAppId, agentPubKey, port, Task.Run(() => IssueAppAuthenticationTokenAsync(installedAppId)).GetAwaiter().GetResult());
+        }
+
+        private IHoloNETClientAppAgent CreateNewAppAgentClientConnection(string installedAppId, string agentPubKey, ushort port, byte[] appAuthenticationToken)
         {
             //_test[CurrentApp.Name] = new HoloNETClientAppAgent(new HoloNETDNA()
             //{
@@ -61,7 +73,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             // If you do not pass a HoloNETDNA in then it will use the one persisted to disk from the previous run if SaveDNA was called(if there is no saved DNA then it will use the defaults).
             IHoloNETClientAppAgent newClient = new HoloNETClientAppAgent(installedAppId, agentPubKey, new HoloNETDNA()
             {
-                HolochainConductorAppAgentURI = $"ws://127.0.0.1:{port}"
+                HolochainConductorAppAgentURI = $"ws://127.0.0.1:{port}",
+                // Holochain 0.6+ app interfaces need an authentication token before any request (the conductor closed the
+                // connection on the first call without one). Run off the UI thread so the wait can't deadlock it.
+                AppAuthenticationToken = appAuthenticationToken
             });
 
             newClient.OnConnected += _holoNETClientApp_OnConnected;
@@ -88,6 +103,21 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
         /// Attempt to find an existing appAgent HoloNET Client connection from the connection pool that matches the current hApp's DnaHash & AgentPubKey (CellId). If it doesn't find one then it will begin the process of creating a new one by getting the admin connection to authorize the hApp...
         /// </summary>
         /// <returns></returns>
+        /// <summary>Issues an app interface authentication token for the app (null, and logged, if the conductor refuses).</summary>
+        public async Task<byte[]> IssueAppAuthenticationTokenAsync(string installedAppId)
+        {
+            AppAuthenticationTokenIssuedCallBackEventArgs tokenResult = await HoloNETClientAdmin.IssueAppAuthenticationTokenAsync(installedAppId);
+
+            if (tokenResult == null || tokenResult.IsError || tokenResult.TokenIssued == null)
+            {
+                LogMessage($"ADMIN: Error Issuing App Authentication Token For {installedAppId}. Reason: {tokenResult?.Message}");
+                ShowStatusMessage($"Error Issuing App Authentication Token For {installedAppId}. Reason: {tokenResult?.Message}", StatusMessageType.Error);
+                return null;
+            }
+
+            return tokenResult.TokenIssued.token;
+        }
+
         public ConnectToAppAgentClientResult ConnectToAppAgentClient()
         {
             ConnectToAppAgentClientResult result = new ConnectToAppAgentClientResult();
@@ -415,7 +445,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             HoloNETClientAppAgent client = sender as HoloNETClientAppAgent;
 
             if (client != null)
-                Dispatcher.CurrentDispatcher.InvokeAsync(async () => await ProcessClientOperationAsync(client));
+                // Was Dispatcher.CurrentDispatcher.InvokeAsync: called from WebSocket event threads, that queued the work on a new
+                // dispatcher for that thread which never runs, so it never happened. RunOnUIThread uses the app's dispatcher.
+                //Dispatcher.CurrentDispatcher.InvokeAsync(async () => await ProcessClientOperationAsync(client));
+                RunOnUIThread(async () => await ProcessClientOperationAsync(client));
         }
 
 
@@ -504,7 +537,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             _clientsDisconnected++;
 
             if (_clientsDisconnected == _clientsToDisconnect && _rebooting && _adminDisconnected)
-                Dispatcher.CurrentDispatcher.InvokeAsync(async () => { await ConnectAdminAsync(); });
+                // Was Dispatcher.CurrentDispatcher.InvokeAsync: called from WebSocket event threads, that queued the work on a new
+                // dispatcher for that thread which never runs, so it never happened. RunOnUIThread uses the app's dispatcher.
+                //Dispatcher.CurrentDispatcher.InvokeAsync(async () => { await ConnectAdminAsync(); });
+                RunOnUIThread(async () => { await ConnectAdminAsync(); });
         }
 
         private void _holoNETClientApp_OnError(object sender, HoloNETErrorEventArgs e)

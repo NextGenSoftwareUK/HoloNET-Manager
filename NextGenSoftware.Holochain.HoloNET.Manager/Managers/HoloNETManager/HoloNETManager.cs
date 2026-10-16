@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -58,7 +59,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
         public Dictionary<string, IAvatarShared> HoloNETEntryShared { get; set; } = new Dictionary<string, IAvatarShared>();
         public Dictionary<string, HoloNETObservableCollection<AvatarShared>> HoloNETEntriesShared { get; set; } = new Dictionary<string, HoloNETObservableCollection<AvatarShared>>();
 
-        public string HoloNETEntryDemoHappPath { get; private set; } = _holoNETEntryDemoHappPath;
+        // Was the relative path itself: the conductor resolves it against its own working directory, not the Manager's, so
+        // installing the demo hApp failed with "path not found" unless both happened to share a folder.
+        //public string HoloNETEntryDemoHappPath { get; private set; } = _holoNETEntryDemoHappPath;
+        public string HoloNETEntryDemoHappPath { get; set; } = System.IO.Path.Combine(System.AppContext.BaseDirectory, _holoNETEntryDemoHappPath);
         public string HoloNETEntryDemoAppId { get; private set; } = _holoNETEntryDemoAppId;
         public string HoloNETCollectionDemoAppId { get; private set; } = _holoNETCollectionDemoAppId;
         public IInstalledApp CurrentApp { get; set; }
@@ -131,7 +135,8 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             GetAppInfoCallBackEventArgs appInfoResult = await HoloNETClientAdmin.GetAppInfoAsync(appId);
 
             //If the test app was manually uninstalled by the user then we need to re-init the HoloNET Entry/Collection now...
-            if (appInfoResult != null && appInfoResult.AppInfo == null || appInfoResult.IsError)
+            // Was "appInfoResult != null && appInfoResult.AppInfo == null || appInfoResult.IsError", which threw a NullReferenceException for a null result.
+            if (appInfoResult == null || appInfoResult.IsError || appInfoResult.AppInfo == null)
             {
                 LogMessage($"ADMIN: Test App {appId} Is NOT Installed.");
                 ShowStatusMessage($"ADMIN App {appId} Is NOT Installed.", StatusMessageType.Error, false, HoloNETEntryUIManager.CurrentHoloNETEntryUI);
@@ -288,7 +293,9 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
             _removeClientConnectionFromPoolAfterDisconnect = true;
 
-            foreach (HoloNETClientAppAgent client in HoloNETClientAppAgentClients)
+            // Over a copy: each disconnect removes the client from the pool (OnDisconnected), which threw "Collection was modified".
+            // Was also foreach (HoloNETClientAppAgent ...), an InvalidCastException for any other IHoloNETClientAppAgent.
+            foreach (IHoloNETClientAppAgent client in HoloNETClientAppAgentClients.ToList())
             {
                 if (client.State == System.Net.WebSockets.WebSocketState.Open)
                     client.Disconnect();
@@ -317,7 +324,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             {
                 if (HoloNETClientAdmin.State == System.Net.WebSockets.WebSocketState.Open)
                 {
-                    Dispatcher.CurrentDispatcher.InvokeAsync(async () =>
+                    // Was Dispatcher.CurrentDispatcher.InvokeAsync: called from WebSocket event threads, that queued the work on a new
+                    // dispatcher for that thread which never runs, so it never happened. RunOnUIThread uses the app's dispatcher.
+                    //Dispatcher.CurrentDispatcher.InvokeAsync(async () =>
+                    RunOnUIThread(async () =>
                     {
                         HoloNETDisconnectedEventArgs disconnectedResult = await HoloNETClientAdmin.DisconnectAsync();
 
@@ -355,14 +365,15 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
             if (HoloNETEntryShared != null)
             {
+                // Was "+=": shutting down subscribed every shared entry's handlers again instead of removing them.
                 foreach (string key in HoloNETEntryShared.Keys)
                 {
-                    HoloNETEntryShared[key].OnInitialized += _holoNETEntryShared_OnInitialized;
-                    HoloNETEntryShared[key].OnLoaded += _holoNETEntryShared_OnLoaded;
-                    HoloNETEntryShared[key].OnClosed += _holoNETEntryShared_OnClosed;
-                    HoloNETEntryShared[key].OnSaved += _holoNETEntryShared_OnSaved;
-                    HoloNETEntryShared[key].OnDeleted += _holoNETEntryShared_OnDeleted;
-                    HoloNETEntryShared[key].OnError += _holoNETEntryShared_OnError;
+                    HoloNETEntryShared[key].OnInitialized -= _holoNETEntryShared_OnInitialized;
+                    HoloNETEntryShared[key].OnLoaded -= _holoNETEntryShared_OnLoaded;
+                    HoloNETEntryShared[key].OnClosed -= _holoNETEntryShared_OnClosed;
+                    HoloNETEntryShared[key].OnSaved -= _holoNETEntryShared_OnSaved;
+                    HoloNETEntryShared[key].OnDeleted -= _holoNETEntryShared_OnDeleted;
+                    HoloNETEntryShared[key].OnError -= _holoNETEntryShared_OnError;
                 }
             }
 
@@ -381,6 +392,20 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             }
 
             CloseAllConnections();
+        }
+
+        /// <summary>
+        /// Runs async work on the WPF UI thread (Application.Current's dispatcher), or on the thread pool when there is no WPF
+        /// application (tests, or a host without WPF).
+        /// </summary>
+        public static void RunOnUIThread(System.Func<Task> work)
+        {
+            Dispatcher dispatcher = System.Windows.Application.Current?.Dispatcher;
+
+            if (dispatcher != null && !dispatcher.HasShutdownStarted)
+                dispatcher.InvokeAsync(work);
+            else
+                _ = Task.Run(work);
         }
 
         public void ShowStatusMessage(string message, StatusMessageType type = StatusMessageType.Information, bool showSpinner = false, ucHoloNETEntry ucHoloNETEntry = null)

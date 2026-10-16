@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using NextGenSoftware.Holochain.HoloNET.Client;
 using NextGenSoftware.Holochain.HoloNET.ORM.Collections;
 using NextGenSoftware.Holochain.HoloNET.Manager.Enums;
@@ -26,7 +26,8 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             {
                 LogMessage($"APP: Creating HoloNET Collection (Internal Connection) (Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort})...");
                 ShowStatusMessage($"Creating HoloNET Collection (Internal Connection) (Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort})...", StatusMessageType.Information, true);
-                HoloNETEntryUIManager.CurrentHoloNETEntryUI.ShowStatusMessage($"Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort}...", StatusMessageType.Information, true);
+                // ?. : the popup may be closed (and is absent when the manager runs headless); this threw a NullReferenceException.
+                HoloNETEntryUIManager.CurrentHoloNETEntryUI?.ShowStatusMessage($"Creating Internal HoloNETClient & Connecting To Port {initDemoResult.AttachedOnPort}...", StatusMessageType.Information, true);
 
                 //If you wanted to load a persisted DNA from disk and then make ammendments to it you would do this:
                 //HoloNETDNA dna = HoloNETDNAManager.LoadDNA();
@@ -37,7 +38,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
                 //_holoNETEntry = new Avatar(dna);
 
                 //If we do not pass in a HoloNETClient it will create it's own internal connection/client
-                HoloNETEntries = new HoloNETObservableCollection<Avatar>("oasis", "get_all_avatars", "add_avatar", "remove_avatar", "batch_update_avatars", true, new HoloNETDNA()
+                // The 0.7 OASIS hApp has no add_avatar / remove_avatar / batch_update_avatars (and get_all_avatars isn't a collection):
+                // use its collection functions (see HoloNETCollectionCore for what they take).
+                //HoloNETEntries = new HoloNETObservableCollection<Avatar>("oasis", "get_all_avatars", "add_avatar", "remove_avatar", "batch_update_avatars", true, new HoloNETDNA()
+                HoloNETEntries = new HoloNETObservableCollection<Avatar>("oasis", "get_avatar_collection", "add_avatar_to_collection", "remove_avatar_from_collection", "batch_update_avatar_collection", true, new HoloNETDNA()
                 {
                     HolochainConductorAppAgentURI = $"ws://localhost:{initDemoResult.AttachedOnPort}",
                     InstalledAppId = HoloNETCollectionDemoAppId, //You need to set either the InstalledAppId or the AgentPubKey & DnaHash. You can set all 3 if you wish but only one or the other works fine too (if only the InstalledAppId is set it will look up the AgentPubKey & DnaHash from the conductor).
@@ -45,6 +49,9 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
                     DnaHash = initDemoResult.DnaHash,
                     AutoStartHolochainConductor = false, //This defaults to true normally so make sure you set this to false because we can connect to the already running holochain.exe (the one admin is already using).
                     AutoShutdownHolochainConductor = false, //This defaults to true normally so make sure you set this to false.
+                    // Holochain 0.6+ app interfaces need an authentication token before any request; without one the conductor closed
+                    // the connection on the first call, so the demo never worked on 0.7.
+                    AppAuthenticationToken = await IssueAppAuthenticationTokenAsync(HoloNETCollectionDemoAppId),
 
                     //HolochainConductorToUse = HolochainConductorEnum.HcDevTool,
                     //ShowHolochainConductorWindow = true,

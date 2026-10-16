@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Specialized;
 using System.Threading.Tasks;
 using NextGenSoftware.Holochain.HoloNET.Client;
@@ -19,7 +19,10 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
             if (!HoloNETEntriesShared.ContainsKey(CurrentApp.Name) || (HoloNETEntriesShared.ContainsKey(CurrentApp.Name) && HoloNETEntriesShared[CurrentApp.Name] == null))
             {
-                HoloNETEntriesShared[CurrentApp.Name] = new HoloNETObservableCollection<AvatarShared>("oasis", "get_all_avatars", "add_avatar", "remove_avatar", client, "batch_update_avatars");
+                // The 0.7 OASIS hApp has no add_avatar / remove_avatar / batch_update_avatars (and get_all_avatars isn't a collection):
+                // use its collection functions (see HoloNETCollectionCore for what they take).
+                //HoloNETEntriesShared[CurrentApp.Name] = new HoloNETObservableCollection<AvatarShared>("oasis", "get_all_avatars", "add_avatar", "remove_avatar", client, "batch_update_avatars");
+                HoloNETEntriesShared[CurrentApp.Name] = new HoloNETObservableCollection<AvatarShared>("oasis", "get_avatar_collection", "add_avatar_to_collection", "remove_avatar_from_collection", client, "batch_update_avatar_collection");
                 HoloNETEntriesShared[CurrentApp.Name].OnInitialized += HoloNETEntriesShared_OnInitialized;
                 HoloNETEntriesShared[CurrentApp.Name].OnCollectionLoaded += HoloNETEntriesShared_OnCollectionLoaded;
                 HoloNETEntriesShared[CurrentApp.Name].OnCollectionSaved += HoloNETEntriesShared_OnCollectionSaved;
