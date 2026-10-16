@@ -476,6 +476,9 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
         {
             if (_rebooting && _adminDisconnected && _clientsDisconnected == _clientsToDisconnect)
             {
+                // Both the admin's OnDisconnected and the code that asked it to disconnect get here: reboot only once.
+                _rebooting = false;
+
                 if (HoloNETClientAdmin != null)
                 {
                     HoloNETClientAdmin.OnHolochainConductorStarting -= _holoNETClientAdmin_OnHolochainConductorStarting;

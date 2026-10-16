@@ -95,7 +95,11 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
         public void Reboot()
         {
-            _clientsToDisconnect = HoloNETClientAppAgentClients.Count;
+            // Was HoloNETClientAppAgentClients.Count: pooled clients that were already disconnected never report it, so the
+            // reboot waited for them forever.
+            //_clientsToDisconnect = HoloNETClientAppAgentClients.Count;
+            _clientsToDisconnect = HoloNETClientAppAgentClients.Count(c => c.State == System.Net.WebSockets.WebSocketState.Open);
+            _clientsDisconnected = 0;
             _rebooting = true;
             CloseAllConnections();
         }

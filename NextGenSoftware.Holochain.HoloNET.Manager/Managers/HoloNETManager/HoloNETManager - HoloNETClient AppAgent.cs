@@ -536,11 +536,11 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
 
             _clientsDisconnected++;
 
-            if (_clientsDisconnected == _clientsToDisconnect && _rebooting && _adminDisconnected)
-                // Was Dispatcher.CurrentDispatcher.InvokeAsync: called from WebSocket event threads, that queued the work on a new
-                // dispatcher for that thread which never runs, so it never happened. RunOnUIThread uses the app's dispatcher.
-                //Dispatcher.CurrentDispatcher.InvokeAsync(async () => { await ConnectAdminAsync(); });
-                RunOnUIThread(async () => { await ConnectAdminAsync(); });
+            // Was its own "last client and admin down: reconnect the admin" here, which raced the admin side doing the same
+            // (a double reboot) and skipped re-creating the admin client. Both sides now finish the reboot in one place.
+            //if (_clientsDisconnected == _clientsToDisconnect && _rebooting && _adminDisconnected)
+            //    Dispatcher.CurrentDispatcher.InvokeAsync(async () => { await ConnectAdminAsync(); });
+            CheckIfAllDisconnected();
         }
 
         private void _holoNETClientApp_OnError(object sender, HoloNETErrorEventArgs e)

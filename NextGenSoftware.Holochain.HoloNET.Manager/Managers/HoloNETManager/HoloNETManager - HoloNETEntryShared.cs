@@ -103,7 +103,9 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
                 if (!result.IsError)
                 {
                     // Can use either of the lines below to get the EntryHash for the new entry.
-                    HoloNETEntryDNAManager.HoloNETEntryDNA.AvatarSharedActionHash = result.Records[0].EntryHash;
+                    // Was Records[0].EntryHash: stored as the "action hash" and later loaded with, which get_entry_avatar can't decode.
+                    //HoloNETEntryDNAManager.HoloNETEntryDNA.AvatarSharedActionHash = result.Records[0].EntryHash;
+                    HoloNETEntryDNAManager.HoloNETEntryDNA.AvatarSharedActionHash = HoloNETEntryShared[CurrentApp.Name].ActionHash;
                     //HoloNETEntryDNAManager.HoloNETEntryDNA.AvatarSharedEntryHash = HoloNETEntryShared[CurrentApp.Name].EntryHash;
                     HoloNETEntryDNAManager.SaveDNA();
                 }
