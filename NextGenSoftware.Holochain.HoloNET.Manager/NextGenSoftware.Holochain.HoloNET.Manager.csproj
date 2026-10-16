@@ -18,7 +18,9 @@
 	<PackageIcon>hc logo.png</PackageIcon>
 	<Authors>David Ellams (NextGen Software Ltd)</Authors>
 	<PackageTags>holochain;net;unity;manager;ui</PackageTags>
-	<PackageReleaseNotes>## v4.4.0 - Get Storage Info, Add Agent Info, Delete Clone Cell, Graft Records and Update Coordinators now work (were "Coming Soon"); the Dump buttons now show their results.
+	<PackageReleaseNotes>## v4.4.1 - The bundled OASIS demo hApp is the current build (with HyperNET).
+
+## v4.4.0 - Get Storage Info, Add Agent Info, Delete Clone Cell, Graft Records and Update Coordinators now work (were "Coming Soon"); the Dump buttons now show their results.
 
 ## v4.2.0 - HoloNET Manager works end to end on Holochain 0.7.0 and 0.7.1
 
@@ -76,7 +78,7 @@ The biggest HoloNET release since its original launch — a complete upgrade to 
 	<!--<PackageLicenseExpression>GNU GPLv3</PackageLicenseExpression>-->
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-	<Version>4.4.0</Version>
+	<Version>4.4.1</Version>
 	<!--<PackageLicenseFile>..\LICENSE</PackageLicenseFile>-->
 
 	<AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
