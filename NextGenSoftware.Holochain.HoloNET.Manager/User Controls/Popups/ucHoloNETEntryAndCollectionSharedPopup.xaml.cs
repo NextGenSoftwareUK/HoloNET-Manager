@@ -461,7 +461,7 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.UserControls
                         };
 
                         //TODO: REMOVE AFTER, TEMP TILL GET ZOMECALLS WORKING AGAIN!
-                        avatar1.MockData();
+                        // avatar1.MockData();  // Commented out: the ORM removed the MockData stub (HoloNET ORM 4.6); these calls were only temporary test data.
                         HoloNETManager.Instance.HoloNETEntriesShared[HoloNETManager.Instance.CurrentApp.Name].Add(avatar1);
                     }
 
@@ -475,7 +475,7 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.UserControls
                     };
 
                     //TODO: REMOVE AFTER, TEMP TILL GET ZOMECALLS WORKING AGAIN!
-                    avatar.MockData();
+                    // avatar.MockData();  // Commented out: the ORM removed the MockData stub (HoloNET ORM 4.6); these calls were only temporary test data.
                     HoloNETManager.Instance.HoloNETEntriesShared[HoloNETManager.Instance.CurrentApp.Name].Add(avatar);
 
                     avatar = new AvatarShared()
@@ -488,7 +488,7 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.UserControls
                     };
 
                     //TODO: REMOVE AFTER, TEMP TILL GET ZOMECALLS WORKING AGAIN!
-                    avatar.MockData();
+                    // avatar.MockData();  // Commented out: the ORM removed the MockData stub (HoloNET ORM 4.6); these calls were only temporary test data.
                     HoloNETManager.Instance.HoloNETEntriesShared[HoloNETManager.Instance.CurrentApp.Name].Add(avatar);
                 }
                 else
@@ -505,7 +505,7 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.UserControls
                         };
 
                         //TODO: REMOVE AFTER, TEMP TILL GET ZOMECALLS WORKING AGAIN!
-                        avatar.MockData();
+                        // avatar.MockData();  // Commented out: the ORM removed the MockData stub (HoloNET ORM 4.6); these calls were only temporary test data.
                         HoloNETManager.Instance.HoloNETEntriesShared[HoloNETManager.Instance.CurrentApp.Name].Add(avatar);
 
                         avatar = new AvatarShared()
@@ -518,7 +518,7 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.UserControls
                         };
 
                         //TODO: REMOVE AFTER, TEMP TILL GET ZOMECALLS WORKING AGAIN!
-                        avatar.MockData();
+                        // avatar.MockData();  // Commented out: the ORM removed the MockData stub (HoloNET ORM 4.6); these calls were only temporary test data.
                         HoloNETManager.Instance.HoloNETEntriesShared[HoloNETManager.Instance.CurrentApp.Name].Add(avatar);
 
                         avatar = new AvatarShared()
@@ -531,7 +531,7 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.UserControls
                         };
 
                         //TODO: REMOVE AFTER, TEMP TILL GET ZOMECALLS WORKING AGAIN!
-                        avatar.MockData();
+                        // avatar.MockData();  // Commented out: the ORM removed the MockData stub (HoloNET ORM 4.6); these calls were only temporary test data.
                         HoloNETManager.Instance.HoloNETEntriesShared[HoloNETManager.Instance.CurrentApp.Name].Add(avatar);
 
                         avatar = new AvatarShared()
@@ -544,7 +544,7 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.UserControls
                         };
 
                         //TODO: REMOVE AFTER, TEMP TILL GET ZOMECALLS WORKING AGAIN!
-                        avatar.MockData();
+                        // avatar.MockData();  // Commented out: the ORM removed the MockData stub (HoloNET ORM 4.6); these calls were only temporary test data.
                         HoloNETManager.Instance.HoloNETEntriesShared[HoloNETManager.Instance.CurrentApp.Name].Add(avatar);
                     }
                 }
