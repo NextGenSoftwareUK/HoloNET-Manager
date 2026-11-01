@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using NextGenSoftware.Logging;
@@ -19,7 +19,12 @@ namespace NextGenSoftware.Holochain.HoloNET.Manager.Managers
             HoloNETEntryDNAManager.LoadDNA();
 
             HoloNETClientAdmin = new HoloNETClientAdmin();
-            HoloNETClientAdmin.HoloNETDNA.HolochainConductorMode = HolochainConductorModeEnum.UseEmbedded;
+            // Was always UseEmbedded, which throws when the Manager is packaged without a bundled conductor (the plain package,
+            // as opposed to .Embedded / .Embedded.Holochain071 / .Embedded.Holochain070): ask the Client what it carries.
+            //HoloNETClientAdmin.HoloNETDNA.HolochainConductorMode = HolochainConductorModeEnum.UseEmbedded;
+            bool conductorBundled = HoloNETClientBase.IsEmbeddedHolochainVersionBundled(EmbeddedHolochainVersion.V0_7_1)
+                                 || HoloNETClientBase.IsEmbeddedHolochainVersionBundled(EmbeddedHolochainVersion.V0_7_0);
+            HoloNETClientAdmin.HoloNETDNA.HolochainConductorMode = conductorBundled ? HolochainConductorModeEnum.UseEmbedded : HolochainConductorModeEnum.UseSystemGlobal;
             //HoloNETClientAdmin.HoloNETDNA.HolochainConductorToUse = HolochainConductorEnum.HcDevTool;
             HoloNETClientAdmin.HoloNETDNA.HolochainConductorToUse = HolochainConductorEnum.HolochainProductionConductor;
 

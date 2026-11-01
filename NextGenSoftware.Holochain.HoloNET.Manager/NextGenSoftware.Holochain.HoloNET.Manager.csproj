@@ -6,8 +6,13 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
 	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-	<!--<PackageId>NextGenSoftware.Holochain.HoloNET.Manager.Embedded</PackageId>-->
-	<PackageId>NextGenSoftware.Holochain.HoloNET.Manager</PackageId>
+	<!-- One project, four packages: the variant is a build property (-p:Embedded=true -p:EmbeddedHolochain=both|0.7.1|0.7.0),
+	     which also flows to the HoloNET Client reference, so each variant depends on the matching Client.Embedded* package
+	     (the conductors are never duplicated here). The publish job builds every variant listed in packages.json. -->
+	<PackageId Condition="'$(Embedded)' != 'true'">NextGenSoftware.Holochain.HoloNET.Manager</PackageId>
+	<PackageId Condition="'$(Embedded)' == 'true' And ('$(EmbeddedHolochain)' == '' Or '$(EmbeddedHolochain)' == 'both')">NextGenSoftware.Holochain.HoloNET.Manager.Embedded</PackageId>
+	<PackageId Condition="'$(Embedded)' == 'true' And '$(EmbeddedHolochain)' == '0.7.1'">NextGenSoftware.Holochain.HoloNET.Manager.Embedded.Holochain071</PackageId>
+	<PackageId Condition="'$(Embedded)' == 'true' And '$(EmbeddedHolochain)' == '0.7.0'">NextGenSoftware.Holochain.HoloNET.Manager.Embedded.Holochain070</PackageId>
 	<Company>NextGen Software Ltd</Company>
 	<Product>HoloNET Holochain Manager</Product>
 	<Title>HoloNET Holochain Manager</Title>
@@ -18,7 +23,9 @@
 	<PackageIcon>hc logo.png</PackageIcon>
 	<Authors>David Ellams (NextGen Software Ltd)</Authors>
 	<PackageTags>holochain;net;unity;manager;ui</PackageTags>
-	<PackageReleaseNotes>## v4.4.1 - The bundled OASIS demo hApp is the current build (with HyperNET).
+	<PackageReleaseNotes>## v4.6.0 - Part of the HoloNET 4.6.0 release (every HoloNET package is versioned together): https://github.com/holochain-open-dev/holochain-client-csharp/releases/tag/v4.6.0
+
+## v4.4.1 - The bundled OASIS demo hApp is the current build (with HyperNET).
 
 ## v4.4.0 - Get Storage Info, Add Agent Info, Delete Clone Cell, Graft Records and Update Coordinators now work (were "Coming Soon"); the Dump buttons now show their results.
 
@@ -78,7 +85,7 @@ The biggest HoloNET release since its original launch — a complete upgrade to 
 	<!--<PackageLicenseExpression>GNU GPLv3</PackageLicenseExpression>-->
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-	<Version>4.4.1</Version>
+	<Version>4.6.0</Version>
 	<!--<PackageLicenseFile>..\LICENSE</PackageLicenseFile>-->
 
 	<AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
